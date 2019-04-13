@@ -6,7 +6,6 @@
 ### TODO: Support marshalling based on the column type (just for those types
 ### without .python_type properties?)
 
-__python_requires__ = '~= 3.5'
 import base64
 import csv
 from   pathlib import Path
