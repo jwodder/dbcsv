@@ -21,7 +21,7 @@ def register_type(typecls, marsher, unmarsher):
     marshallers[typecls] = marsher
     unmarshallers[typecls] = unmarsher
 
-def marshal(value):
+def marshal_field(value):
     if value is None:
         return NULL_TOKEN
     try:
@@ -31,7 +31,7 @@ def marshal(value):
     else:
         return converter(value)
 
-def unmarshal(s, coltype):
+def unmarshal_field(s, coltype):
     if s == NULL_TOKEN:
         return None
     try:
@@ -81,7 +81,7 @@ def dump_table(conn, table, outfile):
     writer = csv.DictWriter(outfile, table.columns.keys())
     writer.writeheader()
     for entry in conn.execute(S.select([table])):
-        writer.writerow({k: marshal(v) for k,v in entry.items()})
+        writer.writerow(marshal_object(table, entry))
 
 def loaddb(conn, metadata, dirpath):
     for tbl in metadata.sorted_tables:
@@ -93,9 +93,23 @@ def loaddb(conn, metadata, dirpath):
 
 def load_table(conn, table, infile):
     for row in csv.DictReader(infile):
-        conn.execute(
-            table.insert(values={
-                k: unmarshal(v, table.columns[k].type.python_type)
-                for k,v in row.items()
-            })
-        )
+        ### TODO: Should this use `executemany` instead?
+        conn.execute(table.insert(values=unmarshal_object(table, row)))
+
+def marshal_object(table, obj):
+    """
+    Convert a `Mapping` (such as a `~sqlalchemy.engine.RowProxy`) to a `dict`
+    in which all values are `str`.
+    """
+    return {k: marshal_field(v) for k,v in obj.items()}
+
+def unmarshal_object(table, obj):
+    """
+    Convert a `Mapping` in which all values are `str` (such as a row returned
+    from `csv.DictReader`) to a `dict` in which the values match the types used
+    for the columns of the same names in ``table``.
+    """
+    return {
+        k: unmarshal_field(v, table.columns[k].type.python_type)
+        for k,v in obj.items()
+    }
