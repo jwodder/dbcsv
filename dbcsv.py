@@ -1,11 +1,3 @@
-### TODO: Rethink what the first argument to the load* and dump* functions
-### should be: an Engine?  Connection?  Transaction?  Session?
-
-# Marshalling is done based on the type of the value's Python representation.
-
-### TODO: Support marshalling based on the column type (just for those types
-### without .python_type properties?)
-
 import base64
 import csv
 from   pathlib import Path
@@ -14,6 +6,7 @@ import sqlalchemy as S
 
 NULL_TOKEN = r'\N'
 
+# Marshalling is done based on the type of the value's Python representation.
 marshallers = {}
 unmarshallers = {}
 
