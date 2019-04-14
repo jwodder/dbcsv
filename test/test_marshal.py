@@ -1,8 +1,14 @@
 from   datetime import date, datetime, time, timedelta, timezone
 from   decimal  import Decimal
+from   enum     import Enum
 import pytest
 import sqlalchemy as S
 from   dbcsv    import marshal_object, unmarshal_object
+
+class RGBEnum(Enum):
+    RED   = 1
+    GREEN = 2
+    BLUE  = 3
 
 schema = S.MetaData()
 
@@ -21,6 +27,8 @@ table = S.Table('table', schema,
     S.Column('time', S.Time()),
     S.Column('timetz', S.Time(timezone=True)),
     S.Column('timedelta', S.Interval()),
+    S.Column('strenum', S.Enum('red', 'blue', 'green')),
+    S.Column('enumenum', S.Enum(RGBEnum)),
 )
 
 @pytest.mark.parametrize('dbtyped,strtyped', [
@@ -132,6 +140,14 @@ table = S.Table('table', schema,
         {"timedelta": timedelta(hours=5, microseconds=314159)},
         {"timedelta": "18000.314159"},
     ),
+
+    ({"strenum": "red"}, {"strenum": "red"}),
+    ({"strenum": "blue"}, {"strenum": "blue"}),
+    ({"strenum": "green"}, {"strenum": "green"}),
+
+    ({"enumenum": RGBEnum.RED}, {"enumenum": "RED"}),
+    ({"enumenum": RGBEnum.BLUE}, {"enumenum": "BLUE"}),
+    ({"enumenum": RGBEnum.GREEN}, {"enumenum": "GREEN"}),
 ])
 def test_marshal_object(dbtyped, strtyped):
     assert marshal_object(table, dbtyped) == strtyped

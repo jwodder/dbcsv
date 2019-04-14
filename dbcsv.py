@@ -14,6 +14,7 @@ import base64
 import csv
 from   datetime import date, datetime, time, timedelta
 from   decimal  import Decimal
+from   enum     import Enum
 from   pathlib  import Path
 import re
 from   backports.datetime_fromisoformat import MonkeyPatch
@@ -37,7 +38,11 @@ def marshal_field(value):
     try:
         converter = marshallers[type(value)]
     except KeyError:
-        raise ValueError('No marshaller registered for type '+repr(type(value)))
+        if isinstance(value, Enum):
+            return marshal_str(value.name)
+        else:
+            raise ValueError('No marshaller registered for type '
+                             + repr(type(value)))
     else:
         return converter(value)
 
@@ -47,7 +52,11 @@ def unmarshal_field(s, coltype):
     try:
         converter = unmarshallers[coltype]
     except KeyError:
-        raise ValueError('No unmarshaller registered for type ' + repr(coltype))
+        if issubclass(coltype, Enum):
+            return coltype[unmarshal_str(s)]
+        else:
+            raise ValueError('No unmarshaller registered for type '
+                             + repr(coltype))
     else:
         return converter(s)
 
@@ -88,7 +97,6 @@ register_type(datetime, datetime.isoformat, datetime.fromisoformat)
 register_type(date, date.isoformat, date.fromisoformat)
 register_type(time, time.isoformat, time.fromisoformat)
 register_type(timedelta, marshal_timedelta, unmarshal_timedelta)
-### Enum
 ### JSON
 ### ARRAY = list
 ### PickleType ?
