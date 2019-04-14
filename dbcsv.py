@@ -12,9 +12,14 @@ __url__          = 'https://github.com/jwodder/dbcsv'
 
 import base64
 import csv
-from   pathlib import Path
+from   datetime import date, datetime, time, timedelta
+from   decimal  import Decimal
+from   pathlib  import Path
 import re
+from   backports.datetime_fromisoformat import MonkeyPatch
 import sqlalchemy as S
+
+MonkeyPatch.patch_fromisoformat()
 
 NULL_TOKEN = r'\N'
 
@@ -66,14 +71,28 @@ def marshal_bytes(blob):
 def unmarshal_bytes(s):
     return base64.b64decode(s)
 
+def marshal_timedelta(td):
+    return str(td.total_seconds())
+
+def unmarshal_timedelta(s):
+    return timedelta(seconds=float(s))
+
 register_type(str, marshal_str, unmarshal_str)
 register_type(int, str, int)
+register_type(float, str, float)
+register_type(Decimal, str, Decimal)
+### TODO: The `bool` functions should raise ValueError on invalid input:
 register_type(bool, 'ft'.__getitem__, {'f': False, 't': True}.__getitem__)
 register_type(bytes, marshal_bytes, unmarshal_bytes)
-### datetime etc.
-### enums
-### INET?
-
+register_type(datetime, datetime.isoformat, datetime.fromisoformat)
+register_type(date, date.isoformat, date.fromisoformat)
+register_type(time, time.isoformat, time.fromisoformat)
+register_type(timedelta, marshal_timedelta, unmarshal_timedelta)
+### Enum
+### JSON
+### ARRAY = list
+### PickleType ?
+### INET ?
 
 def dumpdb(conn, metadata, dirpath):
     dirpath = Path(dirpath)

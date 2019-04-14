@@ -6,3 +6,4 @@
   be: an Engine?  Connection?  Transaction?  Session?
 - Support marshalling based on the column type (just for those types without
   `.python_type` properties?)
+- Handle CSV entries with incorrect numbers of fields
