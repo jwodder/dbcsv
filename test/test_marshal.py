@@ -29,6 +29,8 @@ table = S.Table('table', schema,
     S.Column('timedelta', S.Interval()),
     S.Column('strenum', S.Enum('red', 'blue', 'green')),
     S.Column('enumenum', S.Enum(RGBEnum)),
+    S.Column('json_sqlnull', S.JSON(none_as_null=True)),
+    S.Column('json_jsonnull', S.JSON(none_as_null=False)),
 )
 
 @pytest.mark.parametrize('dbtyped,strtyped', [
@@ -141,14 +143,54 @@ table = S.Table('table', schema,
         {"timedelta": "18000.314159"},
     ),
 
+    ({"strenum": None}, {"strenum": r'\N'}),
     ({"strenum": "red"}, {"strenum": "red"}),
     ({"strenum": "blue"}, {"strenum": "blue"}),
     ({"strenum": "green"}, {"strenum": "green"}),
 
+    ({"enumenum": None}, {"enumenum": r'\N'}),
     ({"enumenum": RGBEnum.RED}, {"enumenum": "RED"}),
     ({"enumenum": RGBEnum.BLUE}, {"enumenum": "BLUE"}),
     ({"enumenum": RGBEnum.GREEN}, {"enumenum": "GREEN"}),
+
+    ({"json_sqlnull": None}, {"json_sqlnull": r'\N'}),
+    ({"json_jsonnull": None}, {"json_jsonnull": r'\N'}),
+    ({"json_sqlnull": 42}, {"json_sqlnull": "42"}),
+    ({"json_jsonnull": 42}, {"json_jsonnull": "42"}),
+    ({"json_sqlnull": 3.14}, {"json_sqlnull": "3.14"}),
+    ({"json_jsonnull": 3.14}, {"json_jsonnull": "3.14"}),
+    ({"json_sqlnull": True}, {"json_sqlnull": "true"}),
+    ({"json_jsonnull": True}, {"json_jsonnull": "true"}),
+    ({"json_sqlnull": False}, {"json_sqlnull": "false"}),
+    ({"json_jsonnull": False}, {"json_jsonnull": "false"}),
+    ({"json_sqlnull": ""}, {"json_sqlnull": '""'}),
+    ({"json_jsonnull": ""}, {"json_jsonnull": '""'}),
+    ({"json_sqlnull": "foo"}, {"json_sqlnull": '"foo"'}),
+    ({"json_jsonnull": "foo"}, {"json_jsonnull": '"foo"'}),
+    (
+        {"json_sqlnull": [1, "foo", True, None]},
+        {"json_sqlnull": '[1, "foo", true, null]'},
+    ),
+    (
+        {"json_jsonnull": [1, "foo", True, None]},
+        {"json_jsonnull": '[1, "foo", true, null]'},
+    ),
+    (
+        {"json_sqlnull": {"foo": {"bar": None}}},
+        {"json_sqlnull": '{"foo": {"bar": null}}'},
+    ),
+    (
+        {"json_jsonnull": {"foo": {"bar": None}}},
+        {"json_jsonnull": '{"foo": {"bar": null}}'},
+    ),
 ])
 def test_marshal_object(dbtyped, strtyped):
     assert marshal_object(table, dbtyped) == strtyped
+    assert unmarshal_object(table, strtyped) == dbtyped
+
+@pytest.mark.parametrize('dbtyped,strtyped', [
+    ({"json_sqlnull": None}, {"json_sqlnull": "null"}),
+    ({"json_jsonnull": None}, {"json_jsonnull": "null"}),
+])
+def test_one_way_unmarshal_object(dbtyped, strtyped):
     assert unmarshal_object(table, strtyped) == dbtyped
