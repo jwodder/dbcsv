@@ -15,6 +15,7 @@ import base64
 from   datetime import date, datetime, time, timedelta
 from   decimal  import Decimal
 from   enum     import Enum
+import json
 import re
 from   backports.datetime_fromisoformat import MonkeyPatch
 import sqlalchemy as S
@@ -129,6 +130,19 @@ def unmarshal_enum(s, coltype):
     else:
         return unmarshal_str(s)
 
+# Distinguishing between SQL `NULL` and JSON `null` seems to be a lost cause,
+# as both values are retrieved from the database (when that database is
+# PostgreSQL, at least) as Python `None`.  Unmarshalling `\N` and `null` into
+# `S.null()` and `S.JSON.NULL`, respectively, isn't really workable either, as
+# `S.null()` is a column expression and thus we can't check whether it's equal
+# to itself in a test.
+
+def marshal_json(value, coltype):
+    return json.dumps(value)
+
+def unmarshal_json(s, coltype):
+    return json.loads(s)
+
 register_python_type(str, marshal_str, unmarshal_str)
 register_python_type(int, str, int)
 register_python_type(float, str, float)
@@ -142,8 +156,8 @@ register_python_type(time, time.isoformat, time.fromisoformat)
 register_python_type(timedelta, marshal_timedelta, unmarshal_timedelta)
 
 register_column_type(S.Enum, marshal_enum, unmarshal_enum)
+register_column_type(S.JSON, marshal_json, unmarshal_json)
 
-### JSON
 ### ARRAY = list
 ### PickleType ?
 ### INET ?

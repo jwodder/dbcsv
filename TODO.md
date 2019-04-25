@@ -11,3 +11,5 @@
   rather than a connection and a table)
 - Support dumping a `ResultProxy` to a file (accompanied by an optional table
   or column name -> `Column`/column type mapping?)
+- `JSON` type: Try unmarshalling `\N` and `null` into `S.null()` and
+  `S.JSON.NULL` anyway?
