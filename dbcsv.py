@@ -24,41 +24,54 @@ MonkeyPatch.patch_fromisoformat()
 
 NULL_TOKEN = r'\N'
 
-# Marshalling is done based on the type of the value's Python representation.
-marshallers = {}
-unmarshallers = {}
+coltype_marshallers = {}
+pytype_marshallers = {}
 
-def register_type(typecls, marsher, unmarsher):
-    marshallers[typecls] = marsher
-    unmarshallers[typecls] = unmarsher
+coltype_unmarshallers = {}
+pytype_unmarshallers = {}
 
-def marshal_field(value):
+def register_column_type(coltype, marshaller, unmarshaller):
+    try:
+        is_coltype = issubclass(coltype, S.types.TypeEngine)
+    except TypeError:
+        is_coltype = False
+    if not is_coltype:
+        raise TypeError('coltype must be a subclass of sqlalchemy.types.TypeEngine')
+    coltype_marshallers[coltype] = marshaller
+    coltype_unmarshallers[coltype] = unmarshaller
+
+def register_python_type(coltype, marshaller, unmarshaller):
+    pytype_marshallers[coltype] = marshaller
+    pytype_unmarshallers[coltype] = unmarshaller
+
+def marshal_field(value, coltype):
     if value is None:
         return NULL_TOKEN
-    try:
-        converter = marshallers[type(value)]
-    except KeyError:
-        if isinstance(value, Enum):
-            return marshal_str(value.name)
-        else:
-            raise ValueError('No marshaller registered for type '
-                             + repr(type(value)))
-    else:
+    if type(coltype) in coltype_marshallers:
+        converter = coltype_marshallers[type(coltype)]
+        return converter(value, coltype)
+    elif type(value) in pytype_marshallers:
+        converter = pytype_marshallers[type(value)]
         return converter(value)
+    else:
+        raise ValueError('No marshaller registered for type '
+                         + repr(type(coltype)))
 
 def unmarshal_field(s, coltype):
     if s == NULL_TOKEN:
         return None
+    if type(coltype) in coltype_unmarshallers:
+        converter = coltype_unmarshallers[type(coltype)]
+        return converter(s, coltype)
     try:
-        converter = unmarshallers[coltype]
-    except KeyError:
-        if issubclass(coltype, Enum):
-            return coltype[unmarshal_str(s)]
-        else:
-            raise ValueError('No unmarshaller registered for type '
-                             + repr(coltype))
+        pytype = coltype.python_type
+    except Exception:
+        pass
     else:
-        return converter(s)
+        if pytype in pytype_unmarshallers:
+            converter = pytype_unmarshallers[pytype]
+            return converter(s)
+    raise ValueError('No unmarshaller registered for type '+repr(type(coltype)))
 
 def marshal_str(s):
     m = re.fullmatch(r'(\x5C+)N', s)
@@ -86,17 +99,36 @@ def marshal_timedelta(td):
 def unmarshal_timedelta(s):
     return timedelta(seconds=float(s))
 
-register_type(str, marshal_str, unmarshal_str)
-register_type(int, str, int)
-register_type(float, str, float)
-register_type(Decimal, str, Decimal)
+def marshal_enum(value, coltype):
+    assert isinstance(coltype, S.Enum)
+    if issubclass(coltype.python_type, Enum):
+        assert isinstance(value, Enum)
+        return marshal_str(value.name)
+    else:
+        assert isinstance(value, str)
+        return marshal_str(value)
+
+def unmarshal_enum(s, coltype):
+    assert isinstance(coltype, S.Enum)
+    if issubclass(coltype.python_type, Enum):
+        return coltype.python_type[unmarshal_str(s)]
+    else:
+        return unmarshal_str(s)
+
+register_python_type(str, marshal_str, unmarshal_str)
+register_python_type(int, str, int)
+register_python_type(float, str, float)
+register_python_type(Decimal, str, Decimal)
 ### TODO: The `bool` functions should raise ValueError on invalid input:
-register_type(bool, 'ft'.__getitem__, {'f': False, 't': True}.__getitem__)
-register_type(bytes, marshal_bytes, unmarshal_bytes)
-register_type(datetime, datetime.isoformat, datetime.fromisoformat)
-register_type(date, date.isoformat, date.fromisoformat)
-register_type(time, time.isoformat, time.fromisoformat)
-register_type(timedelta, marshal_timedelta, unmarshal_timedelta)
+register_python_type(bool, 'ft'.__getitem__, {'f': False, 't': True}.__getitem__)
+register_python_type(bytes, marshal_bytes, unmarshal_bytes)
+register_python_type(datetime, datetime.isoformat, datetime.fromisoformat)
+register_python_type(date, date.isoformat, date.fromisoformat)
+register_python_type(time, time.isoformat, time.fromisoformat)
+register_python_type(timedelta, marshal_timedelta, unmarshal_timedelta)
+
+register_column_type(S.Enum, marshal_enum, unmarshal_enum)
+
 ### JSON
 ### ARRAY = list
 ### PickleType ?
@@ -133,7 +165,7 @@ def marshal_object(table, obj):
     Convert a `Mapping` (such as a `~sqlalchemy.engine.RowProxy`) to a `dict`
     in which all values are `str`.
     """
-    return {k: marshal_field(v) for k,v in obj.items()}
+    return {k: marshal_field(v, table.columns[k].type) for k,v in obj.items()}
 
 def unmarshal_object(table, obj):
     """
@@ -141,7 +173,4 @@ def unmarshal_object(table, obj):
     from `csv.DictReader`) to a `dict` in which the values match the types used
     for the columns of the same names in ``table``.
     """
-    return {
-        k: unmarshal_field(v, table.columns[k].type.python_type)
-        for k,v in obj.items()
-    }
+    return {k: unmarshal_field(v, table.columns[k].type) for k,v in obj.items()}
