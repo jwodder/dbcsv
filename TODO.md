@@ -13,3 +13,9 @@
   or column name -> `Column`/column type mapping?)
 - `JSON` type: Try unmarshalling `\N` and `null` into `S.null()` and
   `S.JSON.NULL` anyway?
+- Add docstrings
+- Add a note to the documentation about the restrictions regarding JSON nulls
+- Add a note to the documentation about the order that `loaddb()` loads tables
+  in
+- Document the exact formats that values are serialized in?
+- Expand README description

@@ -40,9 +40,9 @@ def register_column_type(coltype, marshaller, unmarshaller):
     coltype_marshallers[coltype] = marshaller
     coltype_unmarshallers[coltype] = unmarshaller
 
-def register_python_type(coltype, marshaller, unmarshaller):
-    pytype_marshallers[coltype] = marshaller
-    pytype_unmarshallers[coltype] = unmarshaller
+def register_python_type(pytype, marshaller, unmarshaller):
+    pytype_marshallers[pytype] = marshaller
+    pytype_unmarshallers[pytype] = unmarshaller
 
 def marshal_object(table, obj):
     """

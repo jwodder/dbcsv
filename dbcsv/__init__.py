@@ -1,6 +1,10 @@
 """
 Dump & load databases as CSV
 
+``dbcsv`` is a Python library for vendor-independent loading & dumping of SQL
+database tables as CSV files, including automatic serialization &
+deserialization of nontrivial types like timestamps and JSON objects.
+
 Visit <https://github.com/jwodder/dbcsv> for more information.
 """
 
