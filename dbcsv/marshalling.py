@@ -1,21 +1,20 @@
-"""
-Dump & load databases as CSV
+# Marshalling (type → str) converters are resolved as follows:
+# - If there is a converter registered for the SQLAlchemy column type, use that
+# - [Don't bother checking the column type's `python_type` here; it'll either
+#   be the same as the type of the raw Python value, in which case it's
+#   redundant, or it won't, in which case using it would be wrong]
+# - Otherwise, marshal based on the type of the raw Python value
 
-Visit <https://github.com/jwodder/dbcsv> for more information.
-"""
-
-__version__      = '0.1.0.dev1'
-__author__       = 'John Thorvald Wodder II'
-__author_email__ = 'dbcsv@varonathe.org'
-__license__      = 'MIT'
-__url__          = 'https://github.com/jwodder/dbcsv'
+# Unmarshalling (str → type) converters are resolved as follows:
+# - If there is a converter registered for the SQLAlchemy column type, use that
+# - Otherwise, if the column type's `python_type` attribute resolves, unmarshal
+#   based on that
+# - Otherwise, error
 
 import base64
-import csv
 from   datetime import date, datetime, time, timedelta
 from   decimal  import Decimal
 from   enum     import Enum
-from   pathlib  import Path
 import re
 from   backports.datetime_fromisoformat import MonkeyPatch
 import sqlalchemy as S
@@ -43,6 +42,21 @@ def register_column_type(coltype, marshaller, unmarshaller):
 def register_python_type(coltype, marshaller, unmarshaller):
     pytype_marshallers[coltype] = marshaller
     pytype_unmarshallers[coltype] = unmarshaller
+
+def marshal_object(table, obj):
+    """
+    Convert a `Mapping` (such as a `~sqlalchemy.engine.RowProxy`) to a `dict`
+    in which all values are `str`.
+    """
+    return {k: marshal_field(v, table.columns[k].type) for k,v in obj.items()}
+
+def unmarshal_object(table, obj):
+    """
+    Convert a `Mapping` in which all values are `str` (such as a row returned
+    from `csv.DictReader`) to a `dict` in which the values match the types used
+    for the columns of the same names in ``table``.
+    """
+    return {k: unmarshal_field(v, table.columns[k].type) for k,v in obj.items()}
 
 def marshal_field(value, coltype):
     if value is None:
@@ -133,44 +147,3 @@ register_column_type(S.Enum, marshal_enum, unmarshal_enum)
 ### ARRAY = list
 ### PickleType ?
 ### INET ?
-
-def dumpdb(conn, metadata, dirpath):
-    dirpath = Path(dirpath)
-    dirpath.mkdir(parents=True, exist_ok=True)
-    for tbl in metadata.sorted_tables:
-        with (dirpath / (tbl.name + '.csv')).open('w') as fp:
-            dump_table(conn, tbl, fp)
-
-def dump_table(conn, table, outfile):
-    writer = csv.DictWriter(outfile, table.columns.keys())
-    writer.writeheader()
-    for entry in conn.execute(S.select([table])):
-        writer.writerow(marshal_object(table, entry))
-
-def loaddb(conn, metadata, dirpath):
-    for tbl in metadata.sorted_tables:
-        try:
-            with (dirpath / (tbl.name + '.csv')).open('r') as fp:
-                load_table(conn, tbl, fp)
-        except FileNotFoundError:
-            pass
-
-def load_table(conn, table, infile):
-    for row in csv.DictReader(infile):
-        ### TODO: Should this use `executemany` instead?
-        conn.execute(table.insert(values=unmarshal_object(table, row)))
-
-def marshal_object(table, obj):
-    """
-    Convert a `Mapping` (such as a `~sqlalchemy.engine.RowProxy`) to a `dict`
-    in which all values are `str`.
-    """
-    return {k: marshal_field(v, table.columns[k].type) for k,v in obj.items()}
-
-def unmarshal_object(table, obj):
-    """
-    Convert a `Mapping` in which all values are `str` (such as a row returned
-    from `csv.DictReader`) to a `dict` in which the values match the types used
-    for the columns of the same names in ``table``.
-    """
-    return {k: unmarshal_field(v, table.columns[k].type) for k,v in obj.items()}

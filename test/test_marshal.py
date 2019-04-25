@@ -1,9 +1,9 @@
-from   datetime import date, datetime, time, timedelta, timezone
-from   decimal  import Decimal
-from   enum     import Enum
+from   datetime          import date, datetime, time, timedelta, timezone
+from   decimal           import Decimal
+from   enum              import Enum
 import pytest
 import sqlalchemy as S
-from   dbcsv    import marshal_object, unmarshal_object
+from   dbcsv.marshalling import marshal_object, unmarshal_object
 
 class RGBEnum(Enum):
     RED   = 1
