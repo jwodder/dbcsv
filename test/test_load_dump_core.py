@@ -399,6 +399,8 @@ def test_dumpdb(tmp_path):
     with engine.begin() as connection:
         connection.execute(planets_tbl.insert(), PLANETS)
         connection.execute(moons_tbl.insert(), MOONS)
-        dumpdb(connection, metadata, tmp_path)
+        # Under Python 3.5, tmp_path is a pathlib2 object, calling `Path()` on
+        # which doesn't work.
+        dumpdb(connection, metadata, str(tmp_path))
         assert_dirtrees_eq(tmp_path, DATA_DIR / 'planets')
     metadata.drop_all(engine)
