@@ -10,9 +10,9 @@ class RGBEnum(Enum):
     GREEN = 2
     BLUE  = 3
 
-schema = S.MetaData()
+metadata = S.MetaData()
 
-table = S.Table('table', schema,
+table = S.Table('table', metadata,
     S.Column('id', S.Integer, primary_key=True, nullable=False),
     S.Column('name', S.Unicode(2048)),
     S.Column('str', S.String(32)),
