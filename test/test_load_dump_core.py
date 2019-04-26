@@ -1,7 +1,8 @@
 from   datetime import date
+from   operator import attrgetter
 from   pathlib  import Path
 import sqlalchemy as S
-from   dbcsv    import loaddb
+from   dbcsv    import dumpdb, loaddb
 
 DATA_DIR = Path(__file__).with_name('data')
 
@@ -366,6 +367,17 @@ MOONS = [
     },
 ]
 
+def assert_dirtrees_eq(tree1: Path, tree2: Path):
+    assert sorted(map(attrgetter("name"), tree1.iterdir())) \
+        == sorted(map(attrgetter("name"), tree2.iterdir()))
+    for p1 in tree1.iterdir():
+        p2 = tree2 / p1.name
+        assert p1.is_dir() == p2.is_dir()
+        if p1.is_dir():
+            assert_dirtrees_eq(p1, p2)
+        else:
+            assert p1.read_text() == p2.read_text()
+
 def test_loaddb():
     engine = S.create_engine('sqlite:///:memory:')
     metadata.create_all(engine)
@@ -379,4 +391,14 @@ def test_loaddb():
             S.select([moons_tbl]).order_by(S.asc(moons_tbl.c.id))
         )
         assert list(map(dict, moon_query)) == MOONS
+    metadata.drop_all(engine)
+
+def test_dumpdb(tmp_path):
+    engine = S.create_engine('sqlite:///:memory:')
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(planets_tbl.insert(), PLANETS)
+        connection.execute(moons_tbl.insert(), MOONS)
+        dumpdb(connection, metadata, tmp_path)
+        assert_dirtrees_eq(tmp_path, DATA_DIR / 'planets')
     metadata.drop_all(engine)
