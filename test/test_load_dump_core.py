@@ -1,6 +1,7 @@
 from   datetime import date
 from   operator import attrgetter
 from   pathlib  import Path
+from   shutil   import copyfile
 import sqlalchemy as S
 from   dbcsv    import dumpdb, loaddb
 
@@ -391,6 +392,25 @@ def test_loaddb():
             S.select([moons_tbl]).order_by(S.asc(moons_tbl.c.id))
         )
         assert list(map(dict, moon_query)) == MOONS
+    metadata.drop_all(engine)
+
+def test_loaddb_partial(tmp_path):
+    copyfile(
+        str(DATA_DIR / 'planets' / 'planets.csv'),
+        str(tmp_path / 'planets.csv'),
+    )
+    engine = S.create_engine('sqlite:///:memory:')
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        loaddb(connection, metadata, str(tmp_path))
+        planet_query = connection.execute(
+            S.select([planets_tbl]).order_by(S.asc(planets_tbl.c.id))
+        )
+        assert list(map(dict, planet_query)) == PLANETS
+        moon_query = connection.execute(
+            S.select([moons_tbl]).order_by(S.asc(moons_tbl.c.id))
+        )
+        assert list(moon_query) == []
     metadata.drop_all(engine)
 
 def test_dumpdb(tmp_path):
