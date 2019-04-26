@@ -17,6 +17,7 @@ def dump_table(conn, table, outfile):
         writer.writerow(marshal_object(table, entry))
 
 def loaddb(conn, metadata, dirpath):
+    dirpath = Path(dirpath)
     for tbl in metadata.sorted_tables:
         try:
             with (dirpath / (tbl.name + '.csv')).open('r') as fp:
