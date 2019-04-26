@@ -2,6 +2,7 @@ from   datetime import date
 from   operator import attrgetter
 from   pathlib  import Path
 from   shutil   import copyfile
+import pytest
 import sqlalchemy as S
 from   dbcsv    import dumpdb, loaddb
 
@@ -379,11 +380,21 @@ def assert_dirtrees_eq(tree1: Path, tree2: Path):
         else:
             assert p1.read_text() == p2.read_text()
 
-def test_loaddb():
+@pytest.fixture(params=[str, Path])
+def planet_dirpath(request):
+    return request.param(DATA_DIR / 'planets')
+
+@pytest.fixture(params=[str, Path])
+def tmp_dirpath(request, tmp_path):
+    # Under Python 3.5, tmp_path is a pathlib2 object, which `Path()` can't be
+    # called on directly, hence the intermediate conversion to `str`
+    return request.param(str(tmp_path))
+
+def test_loaddb(planet_dirpath):
     engine = S.create_engine('sqlite:///:memory:')
     metadata.create_all(engine)
     with engine.begin() as connection:
-        loaddb(connection, metadata, DATA_DIR / 'planets')
+        loaddb(connection, metadata, planet_dirpath)
         planet_query = connection.execute(
             S.select([planets_tbl]).order_by(S.asc(planets_tbl.c.id))
         )
@@ -394,15 +405,15 @@ def test_loaddb():
         assert list(map(dict, moon_query)) == MOONS
     metadata.drop_all(engine)
 
-def test_loaddb_partial(tmp_path):
+def test_loaddb_partial(tmp_dirpath):
     copyfile(
         str(DATA_DIR / 'planets' / 'planets.csv'),
-        str(tmp_path / 'planets.csv'),
+        str(Path(tmp_dirpath) / 'planets.csv'),
     )
     engine = S.create_engine('sqlite:///:memory:')
     metadata.create_all(engine)
     with engine.begin() as connection:
-        loaddb(connection, metadata, str(tmp_path))
+        loaddb(connection, metadata, tmp_dirpath)
         planet_query = connection.execute(
             S.select([planets_tbl]).order_by(S.asc(planets_tbl.c.id))
         )
@@ -413,14 +424,12 @@ def test_loaddb_partial(tmp_path):
         assert list(moon_query) == []
     metadata.drop_all(engine)
 
-def test_dumpdb(tmp_path):
+def test_dumpdb(tmp_dirpath):
     engine = S.create_engine('sqlite:///:memory:')
     metadata.create_all(engine)
     with engine.begin() as connection:
         connection.execute(planets_tbl.insert(), PLANETS)
         connection.execute(moons_tbl.insert(), MOONS)
-        # Under Python 3.5, tmp_path is a pathlib2 object, calling `Path()` on
-        # which doesn't work.
-        dumpdb(connection, metadata, str(tmp_path))
-        assert_dirtrees_eq(tmp_path, DATA_DIR / 'planets')
+        dumpdb(connection, metadata, tmp_dirpath)
+        assert_dirtrees_eq(Path(tmp_dirpath), DATA_DIR / 'planets')
     metadata.drop_all(engine)

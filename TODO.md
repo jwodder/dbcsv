@@ -15,5 +15,3 @@
   in
 - Document the exact formats that values are serialized in?
 - Expand README description
-- Test `loaddb()` and `dumpdb()` with both a string and `Path` as the `dirpath`
-  argument
