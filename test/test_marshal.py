@@ -31,6 +31,7 @@ table = S.Table('table', metadata,
     S.Column('enumenum', S.Enum(RGBEnum)),
     S.Column('json_sqlnull', S.JSON(none_as_null=True)),
     S.Column('json_jsonnull', S.JSON(none_as_null=False)),
+    S.Column('pickle', S.PickleType(protocol=3)),
 )
 
 @pytest.mark.parametrize('dbtyped,strtyped', [
@@ -182,6 +183,22 @@ table = S.Table('table', metadata,
     (
         {"json_jsonnull": {"foo": {"bar": None}}},
         {"json_jsonnull": '{"foo": {"bar": null}}'},
+    ),
+
+    ({"pickle": None}, {"pickle": r'\N'}),
+    ({"pickle": 42}, {"pickle": 'gANLKi4='}),
+    ({"pickle": 3.14}, {"pickle": 'gANHQAkeuFHrhR8u'}),
+    ({"pickle": True}, {"pickle": 'gAOILg=='}),
+    ({"pickle": False}, {"pickle": 'gAOJLg=='}),
+    ({"pickle": ""}, {"pickle": 'gANYAAAAAHEALg=='}),
+    ({"pickle": "foo"}, {"pickle": 'gANYAwAAAGZvb3EALg=='}),
+    (
+        {"pickle": [1, "foo", True, None]},
+        {"pickle": 'gANdcQAoSwFYAwAAAGZvb3EBiE5lLg=='},
+    ),
+    (
+        {"pickle": {"foo": {"bar": None}}},
+        {"pickle": 'gAN9cQBYAwAAAGZvb3EBfXECWAMAAABiYXJxA05zcy4='},
     ),
 ])
 def test_marshal_object(dbtyped, strtyped):

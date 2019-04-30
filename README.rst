@@ -100,6 +100,7 @@ By default, ``dbcsv`` supports the following column types:
 
 - ``sqlalchemy.types.Enum`` (both string-based and ``enum.Enum``-based)
 - ``sqlalchemy.types.JSON``
+- ``sqlalchemy.types.PickleType``
 
 
 Registering New Types

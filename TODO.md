@@ -15,3 +15,6 @@
   in
 - Document the exact formats that values are serialized in?
 - Expand README description
+- Types to support/consider supporting:
+    - `ARRAY`/`list`
+    - `INET`

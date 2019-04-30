@@ -143,6 +143,14 @@ def marshal_json(value, coltype):
 def unmarshal_json(s, coltype):
     return json.loads(s)
 
+def marshal_pickle(value, coltype):
+    return base64.b64encode(
+        coltype.pickler.dumps(value, protocol=coltype.protocol)
+    ).decode('us-ascii')
+
+def unmarshal_pickle(s, coltype):
+    return coltype.pickler.loads(base64.b64decode(s))
+
 register_python_type(str, marshal_str, unmarshal_str)
 register_python_type(int, str, int)
 register_python_type(float, str, float)
@@ -157,7 +165,4 @@ register_python_type(timedelta, marshal_timedelta, unmarshal_timedelta)
 
 register_column_type(S.Enum, marshal_enum, unmarshal_enum)
 register_column_type(S.JSON, marshal_json, unmarshal_json)
-
-### ARRAY = list
-### PickleType ?
-### INET ?
+register_column_type(S.PickleType, marshal_pickle, unmarshal_pickle)
