@@ -32,6 +32,7 @@ table = S.Table('table', metadata,
     S.Column('json_sqlnull', S.JSON(none_as_null=True)),
     S.Column('json_jsonnull', S.JSON(none_as_null=False)),
     S.Column('pickle', S.PickleType(protocol=3)),
+    S.Column('intlist', S.ARRAY(S.Integer)),
 )
 
 @pytest.mark.parametrize('dbtyped,strtyped', [
@@ -199,6 +200,22 @@ table = S.Table('table', metadata,
     (
         {"pickle": {"foo": {"bar": None}}},
         {"pickle": 'gAN9cQBYAwAAAGZvb3EBfXECWAMAAABiYXJxA05zcy4='},
+    ),
+
+    ({"intlist": None}, {"intlist": r'\N'}),
+    ({"intlist": []}, {"intlist": "[]"}),
+    ({"intlist": ()}, {"intlist": "()"}),
+    ({"intlist": [42]}, {"intlist": "['42']"}),
+    ({"intlist": (42,)}, {"intlist": "('42',)"}),
+    ({"intlist": [42, None]}, {"intlist": r"['42', '\\N']"}),
+    ({"intlist": (42, None)}, {"intlist": r"('42', '\\N')"}),
+    (
+        {"intlist": [[42, 23], [17, 69105]]},
+        {"intlist": "[['42', '23'], ['17', '69105']]"},
+    ),
+    (
+        {"intlist": ((42, 23), (17, 69105))},
+        {"intlist": "(('42', '23'), ('17', '69105'))"},
     ),
 ])
 def test_marshal_object(dbtyped, strtyped):

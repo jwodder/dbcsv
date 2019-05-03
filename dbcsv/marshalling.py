@@ -11,6 +11,7 @@
 #   based on that
 # - Otherwise, error
 
+from   ast      import literal_eval
 import base64
 from   datetime import date, datetime, time, timedelta
 from   decimal  import Decimal
@@ -151,6 +152,22 @@ def marshal_pickle(value, coltype):
 def unmarshal_pickle(s, coltype):
     return coltype.pickler.loads(base64.b64decode(s))
 
+def marshal_array(value, coltype):
+    def marshal(x):
+        if isinstance(x, (list, tuple)):
+            return type(x)(map(marshal, x))
+        else:
+            return marshal_field(x, coltype.item_type)
+    return str(marshal(value))
+
+def unmarshal_array(s, coltype):
+    def unmarshal(x):
+        if isinstance(x, (list, tuple)):
+            return type(x)(map(unmarshal, x))
+        else:
+            return unmarshal_field(x, coltype.item_type)
+    return unmarshal(literal_eval(s))
+
 register_python_type(str, marshal_str, unmarshal_str)
 register_python_type(int, str, int)
 register_python_type(float, str, float)
@@ -166,3 +183,4 @@ register_python_type(timedelta, marshal_timedelta, unmarshal_timedelta)
 register_column_type(S.Enum, marshal_enum, unmarshal_enum)
 register_column_type(S.JSON, marshal_json, unmarshal_json)
 register_column_type(S.PickleType, marshal_pickle, unmarshal_pickle)
+register_column_type(S.ARRAY, marshal_array, unmarshal_array)

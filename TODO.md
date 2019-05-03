@@ -16,5 +16,7 @@
 - Document the exact formats that values are serialized in?
 - Expand README description
 - Types to support/consider supporting:
-    - `ARRAY`/`list`
-    - `INET`
+    - `sqlalchemy.dialects.postgresql.ARRAY`
+    - `sqlalchemy.dialects.postgresql.INET`
+    - `sqlalchemy.dialects.postgresql.JSON`
+    - `sqlalchemy.dialects.postgresql.JSONB`

@@ -98,6 +98,8 @@ By default, ``dbcsv`` supports the following column types:
   - ``int`` (e.g., ``Integer``, ``BigInteger``, ``SmallInteger``)
   - ``str`` (e.g., ``String``, ``Text``, ``Unicode``, ``UnicodeText``)
 
+- ``sqlalchemy.types.ARRAY(item_type)`` where ``item_type`` is also a supported
+  column type
 - ``sqlalchemy.types.Enum`` (both string-based and ``enum.Enum``-based)
 - ``sqlalchemy.types.JSON``
 - ``sqlalchemy.types.PickleType``
