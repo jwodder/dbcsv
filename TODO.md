@@ -13,10 +13,11 @@
 - Add a note to the documentation about the restrictions regarding JSON nulls
 - Add a note to the documentation about the order that `loaddb()` loads tables
   in
-- Document the exact formats that values are serialized in?
 - Expand README description
 - Types to support/consider supporting:
     - `sqlalchemy.dialects.postgresql.ARRAY`
     - `sqlalchemy.dialects.postgresql.INET`
     - `sqlalchemy.dialects.postgresql.JSON`
     - `sqlalchemy.dialects.postgresql.JSONB`
+    - other dialect-specific types
+- Document `(un)marshal_object`?

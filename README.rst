@@ -87,22 +87,34 @@ By default, ``dbcsv`` supports the following column types:
 
 - Column types represented in Python as one of the following types:
 
-  - ``bool`` (e.g., ``Boolean``)
-  - ``bytes`` (e.g., ``LargeBinary``)
-  - ``datetime.date`` (e.g., ``Date``)
-  - ``datetime.datetime`` (e.g., ``DateTime``)
-  - ``datetime.time`` (e.g., ``Time``)
-  - ``datetime.timedelta`` (e.g., ``Interval``)
+  - ``bool`` (e.g., ``Boolean``) — serialized as ``f`` or ``t``
+  - ``bytes`` (e.g., ``LargeBinary``) — serialized as base 64
+  - ``datetime.date`` (e.g., ``Date``) — serialized in the format
+    ``YYYY-MM-DD``
+  - ``datetime.datetime`` (e.g., ``DateTime``) — serialized in the format
+    ``YYYY-MM-DDTHH:MM:SS[.ssssss][+HH:MM]``
+  - ``datetime.time`` (e.g., ``Time``) — serialized in the format
+    ``HH:MM:SS[.ssssss][+HH:MM]``
+  - ``datetime.timedelta`` (e.g., ``Interval``) — serialized as a
+    floating-point number of seconds
   - ``decimal.Decimal`` (e.g., ``Numeric``)
   - ``float`` (e.g., ``Float``)
   - ``int`` (e.g., ``Integer``, ``BigInteger``, ``SmallInteger``)
   - ``str`` (e.g., ``String``, ``Text``, ``Unicode``, ``UnicodeText``)
 
 - ``sqlalchemy.types.ARRAY(item_type)`` where ``item_type`` is also a supported
-  column type
-- ``sqlalchemy.types.Enum`` (both string-based and ``enum.Enum``-based)
-- ``sqlalchemy.types.JSON``
-- ``sqlalchemy.types.PickleType``
+  column type — serialized as a ``repr`` of a Python list or tuple of strings
+  of serialized values
+- ``sqlalchemy.types.Enum`` (both string-based and ``enum.Enum``-based) —
+  serialized as the enumeration label (for string-based) or the ``Enum``
+  object's ``name`` attribute (for ``enum.Enum``-based)
+- ``sqlalchemy.types.JSON`` — serialized as JSON
+- ``sqlalchemy.types.PickleType`` — serialized as a pickled object in base 64
+
+``None``\s/SQL ``NULL``\s are serialized as the string ``\N``.  In order to
+avoid confusion with this value, any other value that would be serialized as
+``\N`` is instead serialized as ``\\N`` (and ``\\N`` is likewise escaped as
+``\\\\N`` etc.).
 
 
 Registering New Types
@@ -133,4 +145,7 @@ Marshalling & unmarshalling of ``None``/``NULL`` values is handled before
 calling registered marshallers/unmarshallers, and so a marshaller will never be
 passed a ``None``, and an unmarshaller will never be passed a ``r'\N'``.
 Marshallers must take care to not return the string ``r'\N'`` unless they want
-the value to be unmarshalled as ``None``.
+the value to be unmarshalled as ``None``; the functions
+``dbcsv.marshalling.marshal_str()`` and ``dbcsv.marshalling.unmarshal_str()``
+can be used to safely escape & unescape arbitrary strings in order to store an
+actual ``r'\N'`` string or escaped form thereof.
