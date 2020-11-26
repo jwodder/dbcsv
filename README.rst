@@ -24,7 +24,7 @@ deserialization of nontrivial types like timestamps and JSON objects.
 
 Installation
 ============
-``dbcsv`` requires Python 3.5 or higher.  Just use `pip <https://pip.pypa.io>`_
+``dbcsv`` requires Python 3.6 or higher.  Just use `pip <https://pip.pypa.io>`_
 for Python 3 (You have pip, right?) to install ``dbcsv`` and its dependencies::
 
     python3 -m pip install git+https://github.com/jwodder/dbcsv.git
