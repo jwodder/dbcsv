@@ -138,10 +138,10 @@ def unmarshal_enum(s, coltype):
 # `S.null()` is a column expression and thus we can't check whether it's equal
 # to itself in a test.
 
-def marshal_json(value, coltype):
+def marshal_json(value, _coltype):
     return json.dumps(value)
 
-def unmarshal_json(s, coltype):
+def unmarshal_json(s, _coltype):
     return json.loads(s)
 
 def marshal_pickle(value, coltype):
